@@ -93,6 +93,11 @@
   .quake circle.body{stroke:#0a1019;stroke-width:.6}
   .quake circle.ring{fill:none;opacity:.5}
   .quake.dim{opacity:.16}
+  .quake.selected{opacity:1!important}
+  .quake circle.halo{fill:none;stroke:#4ea3ff;stroke-width:1.6;opacity:0;transition:opacity .15s,r .15s}
+  .quake.selected circle.halo{opacity:.95;animation:haloPulse 1.6s ease-out infinite}
+  .quake:hover circle.body,.quake.hovered circle.body{stroke:#fff;stroke-width:1.2}
+  @keyframes haloPulse{0%{opacity:.95}50%{opacity:.45}100%{opacity:.95}}
   .maplabel{position:absolute;top:14px;left:16px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog)}
   .legend{position:absolute;bottom:12px;left:16px;right:16px;display:flex;flex-wrap:wrap;gap:5px 9px;align-items:center}
   .legend .lg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--fog)}
@@ -263,7 +268,7 @@ const I18N = {
 const t = k => I18N[LANG][k];
 
 // Japan bounding box for the simple equirectangular projection
-const LAT0=24, LAT1=46.5, LON0=122.5, LON1=149.5;
+const LAT0=23, LAT1=46.5, LON0=122, LON1=149.5;
 const W=560, H=640, PAD=14;
 function project(lat,lon){
   const x = PAD + (lon-LON0)/(LON1-LON0)*(W-2*PAD);
@@ -426,6 +431,7 @@ function renderMap(d){
     const big=SHINDO[q.maxi].r>=5;
     pts+=`<g class="quake" data-i="${ALL.indexOf(q)}" transform="translate(${x.toFixed(1)},${y.toFixed(1)})">`;
     if(big) pts+=`<circle class="ring" r="${(r+5).toFixed(1)}" stroke="${col}" stroke-width="1"/>`;
+    pts+=`<circle class="halo" r="${(r+4).toFixed(1)}"/>`;
     pts+=`<circle class="body" r="${r.toFixed(1)}" fill="${col}" fill-opacity="0.85"/></g>`;
   });
   svg.innerHTML = JP_PATHS + pts;
@@ -443,14 +449,20 @@ function renderMap(d){
       highlightRow(+g.dataset.i,true);
     });
     g.addEventListener('mouseleave',()=>{tip.style.opacity=0;highlightRow(+g.dataset.i,false);});
-    g.addEventListener('click',()=>{ const row=document.querySelector(`.row[data-i="${g.dataset.i}"]`); if(row){row.scrollIntoView({behavior:'smooth',block:'center'}); flash(row);} });
+    g.addEventListener('click',()=>{ selectQuake(+g.dataset.i); const row=document.querySelector(`.row[data-i="${g.dataset.i}"]`); if(row){row.scrollIntoView({behavior:'smooth',block:'center'}); flash(row);} });
+  });
+}
+
+function selectQuake(i){
+  document.querySelectorAll('.quake').forEach(g=>{
+    g.classList.toggle('selected', +g.dataset.i===i);
   });
 }
 
 function highlightRow(i,on){
   document.querySelectorAll('.quake').forEach(g=>{
-    if(on) g.classList.toggle('dim', +g.dataset.i!==i);
-    else g.classList.remove('dim');
+    if(on){ g.classList.toggle('dim', +g.dataset.i!==i); g.classList.toggle('hovered', +g.dataset.i===i); }
+    else { g.classList.remove('dim'); g.classList.remove('hovered'); }
   });
 }
 function flash(row){ row.classList.add('active'); setTimeout(()=>row.classList.remove('active'),1400); }
@@ -480,6 +492,7 @@ function renderList(d){
     const i=+r.dataset.i;
     r.addEventListener('mouseenter',()=>highlightRow(i,true));
     r.addEventListener('mouseleave',()=>highlightRow(i,false));
+    r.addEventListener('click',()=>{ selectQuake(i); flash(r); });
   });
 }
 
