@@ -122,7 +122,7 @@
     display:flex;align-items:center;justify-content:space-between;gap:10px
   }
   .feedhead h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fog);font-weight:700}
-  .filters{display:flex;gap:6px}
+  .filters{display:flex;gap:6px;flex-wrap:wrap}
   .chip{
     font-family:"DM Mono",monospace;font-size:10px;color:var(--fog);
     background:transparent;border:1px solid var(--line);border-radius:20px;
@@ -130,6 +130,7 @@
   }
   .chip:hover{color:var(--paper)}
   .chip.on{background:var(--paper);color:var(--ink);border-color:var(--paper);font-weight:500}
+  .fdiv{width:1px;align-self:stretch;margin:2px 4px;background:rgba(255,255,255,.14)}
   .list{overflow-y:auto;flex:1;max-height:62vh}
   @media(max-width:880px){.list{max-height:none}}
   .row{
@@ -308,7 +309,7 @@ function clockJST(iso){
 // pick region name for current language, fall back to English
 const regionName = q => (LANG==="ja" && q.region_ja) ? q.region_ja : q.region;
 
-let ALL=[], FILTER=0, IS_LIVE=false, LAST_FETCH=null;
+let ALL=[], FILTER=0, TFILTER=0, IS_LIVE=false, LAST_FETCH=null;
 
 // Transform raw JMA records -> normalized rows
 function normalize(raw){
@@ -388,8 +389,9 @@ function setLang(l){
 }
 
 function render(){
-  const shown = FILTER? ALL.filter(d=>SHINDO[d.maxi].r>=FILTER) : ALL;
-  renderStats(ALL);
+  let shown = FILTER? ALL.filter(d=>SHINDO[d.maxi].r>=FILTER) : ALL;
+  if(TFILTER) shown = shown.filter(d=> (Date.now()-new Date(d.at).getTime()) <= TFILTER*3600e3);
+  renderStats(shown);
   renderLegend();
   renderFilters();
   renderMap(shown);
@@ -414,9 +416,15 @@ function renderLegend(){
 
 function renderFilters(){
   const opts=[{r:0,t:t('filterAll')},{r:3,t:"≥3"},{r:4,t:"≥4"},{r:5,t:"≥5−"}];
+  const topts=[{h:0,t:t('filterAll')},{h:24,t:"24h"},{h:72,t:"72h"},{h:168,t:"7d"}];
   document.getElementById('filters').innerHTML =
-    opts.map(o=>`<button class="chip ${FILTER===o.r?'on':''}" data-r="${o.r}">${o.t}</button>`).join('');
-  document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{FILTER=+b.dataset.r;render();});
+    opts.map(o=>`<button class="chip ${FILTER===o.r?'on':''}" data-r="${o.r}">${o.t}</button>`).join('')
+    + `<span class="fdiv"></span>`
+    + topts.map(o=>`<button class="chip ${TFILTER===o.h?'on':''}" data-h="${o.h}">${o.t}</button>`).join('');
+  document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{
+    if(b.dataset.r!==undefined) FILTER=+b.dataset.r; else TFILTER=+b.dataset.h;
+    render();
+  });
 }
 
 function renderMap(d){
