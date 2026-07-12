@@ -309,7 +309,7 @@ function clockJST(iso){
 // pick region name for current language, fall back to English
 const regionName = q => (LANG==="ja" && q.region_ja) ? q.region_ja : q.region;
 
-let ALL=[], FILTER=0, TFILTER=0, IS_LIVE=false, LAST_FETCH=null;
+let ALL=[], FILTER=0, TFILTER=24, IS_LIVE=false, LAST_FETCH=null;
 
 // Transform raw JMA records -> normalized rows
 function normalize(raw){
